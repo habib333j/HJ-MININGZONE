@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HJ Mine - Mining</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:Arial,sans-serif;
+}
+
+body{
+  background:#07111f;
+  color:#fff;
+  min-height:100vh;
+}
+
+.header{
+  padding:18px;
+  background:#0c192b;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid #193452;
+}
+
+.logo{
+  font-size:22px;
+  font-weight:bold;
+  color:#00d9ff;
+}
+
+.status{
+  font-size:12px;
+  color:#46ff91;
+}
+
+.container{
+  max-width:500px;
+  margin:auto;
+  padding:18px;
+}
+
+.card{
+  background:#0d1b2d;
+  border:1px solid #1a3654;
+  border-radius:18px;
+  padding:20px;
+  margin-bottom:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.2);
+}
+
+.balance{
+  text-align:center;
+}
+
+.balance small{
+  color:#8da4bd;
+}
+
+.balance h1{
+  font-size:38px;
+  margin:12px 0;
+  color:#00d9ff;
+}
+
+.coin{
+  color:#8da4bd;
+}
+
+.mining{
+  text-align:center;
+}
+
+.mining-icon{
+  width:100px;
+  height:100px;
+  margin:5px auto 15px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:45px;
+  background:#102d45;
+  border:3px solid #00d9ff;
+}
+
+.mining-icon.active{
+  animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+  50%{
+    transform:scale(1.08);
+    box-shadow:0 0 35px #00d9ff;
+  }
+}
+
+button{
+  width:100%;
+  border:0;
+  padding:15px;
+  border-radius:12px;
+  background:#00cfff;
+  color:#00121d;
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button.stop{
+  background:#ff5364;
+  color:#fff;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.stat{
+  background:#102238;
+  padding:15px;
+  border-radius:12px;
+}
+
+.stat span{
+  display:block;
+  color:#8198b0;
+  font-size:12px;
+  margin-bottom:6px;
+}
+
+.stat b{
+  font-size:18px;
+}
+
+.ref{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+}
+
+.ref input{
+  flex:1;
+  background:#081522;
+  border:1px solid #24435f;
+  color:#fff;
+  border-radius:10px;
+  padding:12px;
+}
+
+.ref button{
+  width:100px;
+  padding:10px;
+}
+
+.footer{
+  text-align:center;
+  color:#61758a;
+  font-size:12px;
+  padding:20px;
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+  <div class="logo">⚡ HJ MINE</div>
+  <div class="status">● START MINING</div>
+</header>
+
+<main class="container">
+
+  <div class="card balance">
+    <small>YOUR BALANCE</small>
+    <h1 id="balance">0.000000</h1>
+    <div class="coin">HJX COIN</div>
+  </div>
+
+  <div class="card mining">
+
+    <div id="mineIcon" class="mining-icon">⛏️</div>
+
+    <h2 id="mineStatus">Mining Stopped</h2>
+
+    <p style="color:#8198b0;margin:8px 0 18px;">
+      Rate: <b style="color:#00d9ff;">0.000010 HJX/sec</b>
+    </p>
+
+    <button id="mineBtn" onclick="toggleMining()">
+      START MINING
+    </button>
+
+  </div>
+
+  <div class="stats">
+
+    <div class="stat">
+      <span>Mining Time</span>
+      <b id="time">00:00:00</b>
+    </div>
+
+    <div class="stat">
+      <span>Mining Rate</span>
+      <b>10 TRX</b>
+    </div>
+
+    <div class="stat">
+      <span>Sessions</span>
+      <b id="sessions">0</b>
+    </div>
+
+    <div class="stat">
+      <span>Status</span>
+      <b style="color:#46ff91;">Online</b>
+    </div>
+
+  </div>
+
+  <div class="card">
+    <h3>👥 Referral</h3>
+    <p style="color:#8198b0;margin-top:7px;">
+      Invite friends and earn more bonus.
+    </p>
+
+    <div class="ref">
+      <input id="refLink" readonly>
+      <button onclick="copyRef()">COPY</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎁 Daily Bonus</h3>
+
+    <p style="color:#8198b0;margin:8px 0 15px;">
+      Claim your daily reward.
+    </p>
+
+    <button onclick="claimBonus()" id="bonusBtn">
+      CLAIM +5 TRX
+    </button>
+  </div>
+
+</main>
+
+<div class="footer">
+  HJ MINE © 2026 · GOOD PROJECT · real cryptocurrency
+</div>
+
+<script>
+
+let balance = Number(localStorage.getItem("balance") || 0);
+let sessions = Number(localStorage.getItem("sessions") || 0);
+
+let mining = false;
+let seconds = 0;
+let interval = null;
+
+const balanceEl = document.getElementById("balance");
+const btn = document.getElementById("mineBtn");
+const icon = document.getElementById("mineIcon");
+const status = document.getElementById("mineStatus");
+const timeEl = document.getElementById("time");
+const sessionsEl = document.getElementById("sessions");
+
+function updateBalance(){
+  balanceEl.innerText = balance.toFixed(6);
+  localStorage.setItem("balance",balance);
+}
+
+function updateTime(){
+
+  let h = Math.floor(seconds / 3600);
+  let m = Math.floor((seconds % 3600) / 60);
+  let s = seconds % 60;
+
+  timeEl.innerText =
+    String(h).padStart(2,"0")+":"+
+    String(m).padStart(2,"0")+":"+
+    String(s).padStart(2,"0");
+}
+
+function toggleMining(){
+
+  mining = !mining;
+
+  if(mining){
+
+    btn.innerText = "STOP MINING";
+    btn.classList.add("stop");
+
+    status.innerText = "Mining Active";
+    status.style.color = "#46ff91";
+
+    icon.classList.add("active");
+
+    sessions++;
+    sessionsEl.innerText = sessions;
+
+    localStorage.setItem("sessions",sessions);
+
+    interval = setInterval(()=>{
+
+      balance += 0.000010;
+      seconds++;
+
+      updateBalance();
+      updateTime();
+
+    },1000);
+
+  }else{
+
+    clearInterval(interval);
+
+    btn.innerText = "START MINING";
+    btn.classList.remove("stop");
+
+    status.innerText = "Mining Stopped";
+    status.style.color = "#fff";
+
+    icon.classList.remove("active");
+  }
+}
+
+function claimBonus(){
+
+  balance += 100;
+
+  updateBalance();
+
+  const b = document.getElementById("bonusBtn");
+
+  b.innerText = "BONUS CLAIMED ✓";
+  b.disabled = true;
+
+  setTimeout(()=>{
+
+    b.innerText = "CLAIMED TODAY";
+    
+  },1000);
+}
+
+function copyRef(){
+
+  navigator.clipboard.writeText(
+    document.getElementById("refLink").value
+  );
+
+  alert("Referral link copied!");
+}
+
+document.getElementById("refLink").value =
+  location.href + "?ref=HJ" +
+  Math.floor(Math.random()*999999);
+
+updateBalance();
+sessionsEl.innerText = sessions;
+
+</script>
+
+</body>
+</html>
